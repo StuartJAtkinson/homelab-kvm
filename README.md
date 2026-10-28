@@ -65,9 +65,18 @@ browser: it runs against built-in mock data.
 
 ## Trying input sharing
 
-On two paired Windows machines running `kvmd` (or the app), open the editor
-and drop both into the same room side by side, then push the mouse off the
-shared edge. Typing and clicking follow the cursor.
+On two paired Windows machines running `kvmd` (or the app), put both in the
+same room side by side, then push the mouse off the shared edge. Typing and
+clicking follow the cursor. Without the editor, in either `kvmd` console:
+
+```text
+layout            # lists machines with numbers
+room Office
+unlock 0
+place 0 Office 0 0
+unlock 1
+beside 1 0        # machine 1 to the right of machine 0
+```
 
 - `Ctrl+Alt+Shift+Esc` releases a grab if anything gets stuck.
 - `kvmd --no-input` runs a node without touching input.
