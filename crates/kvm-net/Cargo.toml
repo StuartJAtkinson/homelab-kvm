@@ -1,0 +1,21 @@
+[package]
+name = "kvm-net"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kvm-core.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+mdns-sd.workspace = true
+serde.workspace = true
+dirs.workspace = true
+snow.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+tracing-subscriber.workspace = true

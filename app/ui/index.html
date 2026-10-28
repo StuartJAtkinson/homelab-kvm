@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>homelab-kvm</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>homelab-kvm</h1>
+    <span id="mode" class="mode" hidden>Preview — no backend</span>
+    <span class="spacer"></span>
+    <button id="add-room" class="primary">+ Room</button>
+  </header>
+
+  <section id="pairings" class="pairings" aria-label="Machines asking to join" aria-live="polite"></section>
+
+  <main>
+    <section class="tray" id="tray" aria-label="Unassigned machines">
+      <h2>Unassigned</h2>
+      <p class="hint">New machines appear here. Drag one into a room.</p>
+      <div class="tray-items" id="tray-items"></div>
+    </section>
+
+    <section class="rooms" id="rooms" aria-label="Rooms"></section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

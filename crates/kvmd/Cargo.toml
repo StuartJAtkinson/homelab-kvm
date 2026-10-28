@@ -1,0 +1,14 @@
+[package]
+name = "kvmd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kvm-core.workspace = true
+kvm-net.workspace = true
+kvm-input.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

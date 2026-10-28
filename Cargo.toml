@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = ["crates/kvm-core", "crates/kvm-net", "crates/kvm-input", "crates/kvmd", "app/src-tauri"]
+# The Tauri app needs the MSVC toolchain / WebView2 on Windows and webkit2gtk on
+# Linux; keep plain `cargo build` / `cargo test` working without them.
+default-members = ["crates/kvm-core", "crates/kvm-net", "crates/kvm-input", "crates/kvmd"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+kvm-core = { path = "crates/kvm-core" }
+kvm-net = { path = "crates/kvm-net" }
+kvm-input = { path = "crates/kvm-input" }
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "io-std", "sync", "time", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+mdns-sd = "0.13"
+dirs = "7"
+hostname = "0.4"
+snow = "0.10"
+hex = "0.4"
