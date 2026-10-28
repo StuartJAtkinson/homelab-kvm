@@ -26,7 +26,7 @@ fn parse_line(line: &str) -> Option<DisplayInfo> {
     let px = |s: &str| s.split('/').next()?.parse::<i32>().ok();
     let rect = Rect::new(x.parse().ok()?, y.parse().ok()?, px(w)?, px(h)?);
 
-    Some(DisplayInfo { index, name: name.to_string(), rect, primary })
+    Some(DisplayInfo { index, id: String::new(), name: name.to_string(), rect, primary })
 }
 
 #[cfg(test)]

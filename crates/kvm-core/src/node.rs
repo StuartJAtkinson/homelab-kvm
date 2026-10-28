@@ -29,6 +29,12 @@ impl Os {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DisplayInfo {
     pub index: u32,
+    /// Stable identity from EDID, in Windows' format (e.g.
+    /// `DELA10F8ZSZTY2_2F_07E4_B4`); empty if unknown. The same monitor
+    /// has the same id on any machine or OS it's plugged into.
+    #[serde(default)]
+    pub id: String,
+    /// Human-readable model name, e.g. `DELL U2720Q`.
     pub name: String,
     /// Position in the machine's own desktop coordinates, physical pixels.
     pub rect: Rect,

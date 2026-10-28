@@ -8,6 +8,7 @@ license.workspace = true
 kvm-core.workspace = true
 kvm-net.workspace = true
 kvm-input.workspace = true
+kvm-agent.workspace = true
 anyhow.workspace = true
 tokio.workspace = true
 tracing.workspace = true

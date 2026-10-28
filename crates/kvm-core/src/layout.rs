@@ -355,7 +355,7 @@ mod tests {
             displays: rects
                 .iter()
                 .enumerate()
-                .map(|(i, r)| DisplayInfo { index: i as u32, name: format!("D{i}"), rect: *r, primary: i == 0 })
+                .map(|(i, r)| DisplayInfo { index: i as u32, id: format!("MON{i}"), name: format!("D{i}"), rect: *r, primary: i == 0 })
                 .collect(),
         }
     }

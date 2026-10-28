@@ -57,7 +57,7 @@ pub enum Event {
     PairingRequested(PendingPairing),
     /// A pending pairing was accepted, declined or went away.
     PairingChanged,
-    /// Input-path messages (`Enter`, `Input`, `Claim`) for the input engine.
+    /// Input-path messages (`Enter`, `Input`, `Handoff`, `Claim`) for the input engine.
     Message { from: NodeId, msg: Message },
 }
 
@@ -114,7 +114,8 @@ impl KvmNode {
             layout.touch(id);
         }
 
-        let (events, _) = broadcast::channel(256);
+        // Input messages go through here at mouse rate; leave headroom.
+        let (events, _) = broadcast::channel(1024);
         let node = KvmNode {
             inner: Arc::new(Inner {
                 id,
@@ -253,6 +254,11 @@ impl KvmNode {
         }
         drop(s);
         self.emit(Event::PairingChanged);
+    }
+
+    /// Whether `id` is connected and paired.
+    pub fn is_connected(&self, id: NodeId) -> bool {
+        self.state().peers.get(&id).is_some_and(|p| p.trusted)
     }
 
     /// Send to one paired peer. Returns false if not connected or its queue is full.
@@ -513,7 +519,7 @@ impl KvmNode {
             Message::Layout(layout) => {
                 self.merge_layout(layout, Some(from));
             }
-            msg @ (Message::Enter { .. } | Message::Input(_) | Message::Claim { .. }) => {
+            msg @ (Message::Enter { .. } | Message::Input(_) | Message::Handoff { .. } | Message::Claim) => {
                 self.emit(Event::Message { from, msg });
             }
         }
@@ -597,7 +603,7 @@ mod tests {
             os: Os::current(),
             portable: false,
             key: String::new(),
-            displays: vec![DisplayInfo { index: 0, name: "D0".into(), rect: Rect::new(0, 0, 1920, 1080), primary: true }],
+            displays: vec![DisplayInfo { index: 0, id: String::new(), name: "D0".into(), rect: Rect::new(0, 0, 1920, 1080), primary: true }],
         }
     }
 
@@ -648,7 +654,7 @@ mod tests {
         eventually("pending", || a.pending_pairings().len() == 1).await;
         assert!(a.peers().is_empty() && b.peers().is_empty());
         // Messages to an unpaired peer aren't delivered, and layouts don't sync.
-        assert!(!a.send(b.id(), Message::Claim { epoch: 1 }));
+        assert!(!a.send(b.id(), Message::Claim));
         a.edit_layout(|l| Ok(l.add_room("Another"))).unwrap();
         tokio::time::sleep(Duration::from_millis(200)).await;
         assert!(b.layout().rooms.is_empty());

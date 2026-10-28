@@ -1,7 +1,7 @@
 //! Headless homelab-kvm node: discovery, layout sync and logging.
 //!
 //! ```text
-//! kvmd [--port N] [--connect HOST:PORT]... [--no-discovery] [--config-dir DIR]
+//! kvmd [--port N] [--connect HOST:PORT]... [--no-discovery] [--no-input] [--config-dir DIR]
 //! ```
 //! `RUST_LOG=debug` for more detail.
 
@@ -21,11 +21,12 @@ struct Args {
     port: u16,
     connect: Vec<SocketAddr>,
     discovery: bool,
+    input: bool,
     config_dir: Option<PathBuf>,
 }
 
 fn parse_args() -> anyhow::Result<Args> {
-    let mut args = Args { port: DEFAULT_PORT, connect: vec![], discovery: true, config_dir: None };
+    let mut args = Args { port: DEFAULT_PORT, connect: vec![], discovery: true, input: true, config_dir: None };
     let mut it = std::env::args().skip(1);
     while let Some(a) = it.next() {
         let mut val = || it.next().with_context(|| format!("{a} needs a value"));
@@ -33,9 +34,10 @@ fn parse_args() -> anyhow::Result<Args> {
             "--port" => args.port = val()?.parse()?,
             "--connect" => args.connect.push(val()?.parse()?),
             "--no-discovery" => args.discovery = false,
+            "--no-input" => args.input = false,
             "--config-dir" => args.config_dir = Some(val()?.into()),
             "-h" | "--help" => {
-                println!("kvmd [--port N] [--connect HOST:PORT]... [--no-discovery] [--config-dir DIR]");
+                println!("kvmd [--port N] [--connect HOST:PORT]... [--no-discovery] [--no-input] [--config-dir DIR]");
                 std::process::exit(0);
             }
             other => bail!("unknown argument {other}"),
@@ -74,6 +76,22 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Kept alive until shutdown; dropping it releases any grab.
+    let _agent = if args.input {
+        match kvm_agent::Agent::start(node.clone()) {
+            Ok(a) => {
+                info!("input sharing on (Ctrl+Alt+Shift+Esc releases a stuck grab)");
+                Some(a)
+            }
+            Err(e) => {
+                warn!("input sharing disabled: {e:#}");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     tokio::spawn(watch_displays(node.clone()));
     tokio::spawn(log_events(node.clone()));
     tokio::spawn(console(node.clone()));
@@ -107,13 +125,12 @@ async fn log_events(node: KvmNode) {
                 info!(revision = l.revision, ?rooms, nodes = l.placements.len(), "layout");
             }
             Event::PeerInfo(n) => info!(peer = %n.name, displays = n.displays.len(), "peer updated"),
-            Event::Message { from, msg } => info!(%from, ?msg, "input message (not handled yet)"),
             Event::PairingRequested(p) => info!(
                 peer = %p.node.name,
                 code = %p.code,
                 "pairing requested: check the code matches the other machine, then type `pairs` and `accept N`"
             ),
-            Event::PeerConnected(_) | Event::PeerDisconnected(_) | Event::PairingChanged => {}
+            Event::Message { .. } | Event::PeerConnected(_) | Event::PeerDisconnected(_) | Event::PairingChanged => {}
         }
     }
 }

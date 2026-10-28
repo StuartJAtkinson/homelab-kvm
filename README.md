@@ -12,14 +12,17 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design.
 Working now: discovery, encrypted (Noise) connections, pairing with a 6-digit
 code, the peer mesh, layout sync and persistence, the layout model (rooms,
 lock, snapping, overlap checks, cursor-crossing maths) and the layout editor.
-**Input capture/forwarding isn't implemented yet.**
+Mouse and keyboard sharing works on **Windows** (tested with mock devices and
+on one real machine; crossing between two physical machines is next to try).
+Linux input isn't implemented yet.
 
 ## Layout
 
 ```
 crates/kvm-core    layout model, geometry, protocol (pure, unit-tested)
 crates/kvm-net     mDNS discovery, TCP mesh, layout sync, persistence
-crates/kvm-input   display enumeration, laptop detection; input backends later
+crates/kvm-input   displays (stable EDID ids), laptop detection, Windows input hooks
+crates/kvm-agent   runs the input engine against the mesh and the devices
 crates/kvmd        headless daemon
 app/src-tauri      desktop app (Tauri 2)
 app/ui             layout editor (plain HTML/JS, no build step)
@@ -59,3 +62,16 @@ cargo run -p homelab-kvm
 
 To iterate on the editor UI without building, open `app/ui/index.html` in a
 browser: it runs against built-in mock data.
+
+## Trying input sharing
+
+On two paired Windows machines running `kvmd` (or the app), open the editor
+and drop both into the same room side by side, then push the mouse off the
+shared edge. Typing and clicking follow the cursor.
+
+- `Ctrl+Alt+Shift+Esc` releases a grab if anything gets stuck.
+- `kvmd --no-input` runs a node without touching input.
+- Elevated windows, UAC prompts and the lock screen can't be driven unless
+  the receiving side runs elevated.
+- `cargo run -p kvm-input --example probe` checks a machine's displays, ids,
+  hooks and injection (moves the cursor briefly, then restores it).

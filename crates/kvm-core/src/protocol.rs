@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{Layout, NodeId, NodeInfo};
 
 /// Bumped on any incompatible change to [`Message`].
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -25,13 +25,17 @@ pub enum Message {
     Enter { target: NodeId, x: i32, y: i32 },
     /// Forwarded input for the node most recently sent `Enter`.
     Input(InputEvent),
-    /// Sender saw physical input and wants to become the source.
-    Claim { epoch: u64 },
+    /// Target to source: the cursor left my screens towards `to`, arriving at
+    /// `(x, y)` in `to`'s coordinates. `to` may be the source itself.
+    Handoff { to: NodeId, x: i32, y: i32 },
+    /// Sender saw physical input on itself while being driven remotely, and
+    /// is taking its cursor back.
+    Claim,
     Ping { nonce: u64 },
     Pong { nonce: u64 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MouseButton {
     Left,
@@ -47,7 +51,8 @@ pub enum InputEvent {
     /// Relative motion in physical pixels.
     MouseMove { dx: i32, dy: i32 },
     Button { button: MouseButton, down: bool },
-    /// Wheel motion in notches (120 = one detent, as on Windows).
+    /// Wheel motion, 120 per detent (as on Windows); `dy > 0` scrolls away
+    /// from the user, `dx > 0` scrolls right.
     Wheel { dx: i32, dy: i32 },
     /// `usage` is a USB HID usage ID from the keyboard page (0x07).
     Key { usage: u16, down: bool },

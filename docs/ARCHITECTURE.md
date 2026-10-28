@@ -22,7 +22,8 @@ Non-goals for v1: clipboard sync, file drag, macOS, crossing the internet.
 |-------------------|----------------------------------------------------------------------|
 | `crates/kvm-core` | Pure logic: IDs, geometry, layout model, cursor crossing, protocol. No I/O. |
 | `crates/kvm-net`  | mDNS discovery, framed TCP transport, peer mesh, layout sync (`KvmNode`). |
-| `crates/kvm-input`| Platform glue: display enumeration, laptop detection; input capture/injection (phase 2). |
+| `crates/kvm-input`| Platform glue: displays with stable EDID ids, laptop detection, input capture (hooks) and injection (`SendInput`). |
+| `crates/kvm-agent`| Runs the input `Engine` (in kvm-core) against a `KvmNode` and the platform devices. |
 | `crates/kvmd`     | Headless daemon (useful for servers / debugging).                    |
 | `app/`            | Tauri desktop app: tray + layout editor UI (`app/ui`, plain HTML/JS). |
 
@@ -38,7 +39,7 @@ Layout
  └─ placements: NodeId → Placement { room: Option<RoomId>, origin: Point, locked: bool }
 
 NodeInfo (reported live by each machine, not stored in the layout)
- └─ displays: [DisplayInfo { index, name, rect (OS desktop coords), primary }]
+ └─ displays: [DisplayInfo { index, id (EDID), name, rect (OS desktop coords), primary }]
 ```
 
 Key decisions:
@@ -64,28 +65,44 @@ option is a per-node scale so edges match physical size.
 
 ## Cursor crossing
 
-1. The **active** node (the one with physical input) has a low-level hook.
-2. When the cursor sits on the edge of its desktop and motion pushes outward,
-   it calls `layout::cross(from, local_point, delta)`.
-3. If a monitor of another node in the same room contains the projected world
-   point, the active node sends `Enter { target, x, y }` to that peer, hides
-   and parks its own cursor, and starts **forwarding** raw input as
-   `Input(InputEvent)` messages. Local input is swallowed while forwarding.
-4. The target injects events. When its cursor hits an edge, it runs the same
-   `cross` computation and replies with `Enter` for the next hop (which may be
-   the origin node, or a third node: the origin re-targets its stream).
+`kvm_core::engine::Engine` is a pure state machine (fully unit-tested);
+`kvm-agent` feeds it local events and peer messages and performs its actions.
 
-### Ownership in a peer-to-peer mesh
+| Mode | Meaning |
+|------|---------|
+| `Idle` | The cursor is here; local input drives it as normal. |
+| `Forwarding { to }` | We own the physical input. It's grabbed (swallowed locally) and sent to `to`. |
+| `Controlled { by, pos }` | A peer's input drives our cursor; we track `pos`. |
 
-Any node can become the source when someone touches its physical mouse or
-keyboard. A node that sees local physical input while not the source broadcasts
-`Claim { epoch }`; peers accept the highest epoch (ties broken by node id) and
-stop forwarding. Injected events are tagged so hooks don't mistake them for
-physical input.
+1. **Leaving.** In `Idle`, every physical motion is checked with
+   `Layout::cross(me, pos, delta)`. A cursor pinned against a screen edge
+   reports zero delta, so each direction the motion isn't moving away from is
+   tried with a 1px step too. A hit sends `Enter { target, x, y }`, grabs
+   input (the cursor parks at the centre of the primary display) and switches
+   to `Forwarding`.
+2. **Driving.** The source sends `Input(MouseMove { dx, dy })` (post-acceleration
+   deltas measured against the parked cursor), buttons, wheel and keys. The
+   target moves its own tracked position, warps its cursor there, and clamps
+   at edges with nothing beyond.
+3. **Moving on.** When the target's cursor leaves its screens towards a
+   neighbour, it sends `Handoff { to, x, y }` to the *source*, which either
+   re-targets (`Enter` to the next machine) or, if `to` is itself, ungrabs and
+   warps its own cursor there. Keys and buttons held down on the old target
+   are released first, so nothing sticks.
+4. **Taking back.** Physical input on a `Controlled` machine (someone touched
+   it) sends `Claim` to the source, which ungrabs.
 
-Key codes on the wire are **USB HID usage IDs** (page 0x07), translated per
-platform (Windows scan codes, Linux evdev codes). Hotkeys: `Scroll Lock` toggles
-"stay on this machine"; `Ctrl+Alt+Shift+Esc` releases back to the source.
+Safety valves: `Ctrl+Alt+Shift+Esc` ungrabs (checked inside the hook, so it
+works even if the app is wedged); a dead event channel ungrabs; a peer
+disconnecting ungrabs. Ctrl+Alt+Del never reaches hooks anyway.
+
+Key codes on the wire are **USB HID usage IDs** (page 0x07), mapped to PC/AT
+set-1 scancodes (`kvm-input::keymap`), which is what Windows hooks report and
+what Linux evdev uses for the base keys.
+
+Known gaps: the parked cursor stays visible on the source; modifiers held
+*while* crossing stay down on the source; mixed DPI maps 1 physical pixel to
+1 physical pixel.
 
 ## Discovery and transport
 
@@ -134,19 +151,57 @@ Keystrokes include passwords, so nothing travels in plaintext.
 Known gaps: a forgotten machine isn't told it was removed (it just finds every
 member hanging up); no key rotation; pairing is per-session if declined.
 
-## Platform input backends (phase 2)
+## Platform input backends
 
 | Platform | Capture | Inject | Notes |
 |----------|---------|--------|-------|
-| Windows  | `SetWindowsHookEx(WH_MOUSE_LL / WH_KEYBOARD_LL)` | `SendInput` | Can't inject into elevated windows unless the app runs elevated or as a service; secure desktop (UAC/lock screen) needs a SYSTEM service. |
+| Windows *(done)* | `SetWindowsHookEx(WH_MOUSE_LL / WH_KEYBOARD_LL)` | `SendInput` | Can't inject into elevated windows unless the app runs elevated or as a service; secure desktop (UAC/lock screen) needs a SYSTEM service. |
 | Linux X11 | XInput2 raw events + grab | XTest | Simple, well-trodden. |
 | Linux Wayland | evdev read (`input` group) | `uinput` virtual device | Compositor-independent; needs udev rule. `libei` later where available. |
+
+## Monitor identity and Windows' own arrangement
+
+Findings from probing Windows 11 (see `cargo run -p kvm-input --example probe`):
+
+- **Live arrangement:** `QueryDisplayConfig` (the CCD API, what Settings ->
+  Display uses) gives each active source's desktop position and size, and
+  `DisplayConfigGetDeviceInfo(GET_TARGET_NAME)` gives the monitor's friendly
+  name and device path, e.g. `\\?\DISPLAY#DELA10F#<instance>#{guid}`. The
+  device path names a registry key holding the raw EDID:
+  `HKLM\SYSTEM\CurrentControlSet\Enum\DISPLAY\<hw id>\<instance>\Device Parameters\EDID`.
+- **Windows' monitor ids:** Windows keys its saved arrangements by an id built
+  from the EDID: `<PNP id><serial>_<week>_<year>_<checksum>`, e.g.
+  `DELA10F8ZSZTY2_2F_07E4_B4` (serial = the EDID serial text, else the numeric
+  serial in decimal). `kvm-input::edid` reproduces this exactly (tested
+  against real EDIDs), and `DisplayInfo.id` carries it. It's computable from
+  EDID on any OS (Linux exposes `/sys/class/drm/*/edid`), so a monitor keeps its
+  id across machines.
+- **Saved arrangements:** `HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration`
+  has one key per monitor *combination* ever connected, named by those ids
+  joined with `*` (extended) or `+` (clone), holding per-source `Position.cx/cy`,
+  `PrimSurfSize`, `Rotation` and so on. Readable without admin rights;
+  the format is undocumented, so treat it as read-only.
+- **Changing it:** the supported write path is `SetDisplayConfig` with
+  `SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_SAVE_TO_DATABASE`, which
+  applies a layout and saves it to that database.
+- **Change notifications:** top-level windows receive `WM_DISPLAYCHANGE`; we
+  currently poll every 5s instead.
+
+What this enables (not built yet):
+
+1. Recognise a docked laptop's external monitors by id and restore where that
+   desk lives in the room layout ("the laptop is at the office desk").
+2. Show Windows' saved arrangements for a machine in the editor.
+3. Let the editor rearrange a machine's *own* monitors and push that to
+   Windows with `SetDisplayConfig`, so the in-machine and room layouts stay
+   consistent from one place.
 
 ## Roadmap
 
 1. **Scaffold**: layout model + tests, discovery, peer mesh, layout sync,
    editor UI, daemon. *(done)*
 2. Pairing + Noise transport. *(done)*
-3. Windows capture/inject, crossing between two Windows machines.
+3. Windows capture/inject, crossing between two Windows machines. *(done;
+   needs testing across two real machines)*
 4. Linux backends.
 5. Polish: tray icon, autostart, hotkeys, per-node DPI scale, clipboard text.

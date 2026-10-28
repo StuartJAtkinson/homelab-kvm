@@ -16,6 +16,8 @@ const DISPLAY_POLL: Duration = Duration::from_secs(5);
 
 struct App {
     node: KvmNode,
+    /// Held for the app's lifetime; `None` if input sharing failed to start.
+    _agent: Option<kvm_agent::Agent>,
 }
 
 /// Everything the editor needs to render.
@@ -99,7 +101,7 @@ fn place(app: State<App>, node: NodeId, room: Option<RoomId>, x: i32, y: i32) ->
     })
 }
 
-async fn start_node() -> anyhow::Result<KvmNode> {
+async fn start_node() -> anyhow::Result<(KvmNode, Option<kvm_agent::Agent>)> {
     let store = Store::open(None)?;
     let me = kvm_input::local_node_info(store.node_id()?)?;
     let node = KvmNode::start(NodeConfig {
@@ -124,7 +126,10 @@ async fn start_node() -> anyhow::Result<KvmNode> {
             }
         }
     });
-    Ok(node)
+    let agent = kvm_agent::Agent::start(node.clone())
+        .inspect_err(|e| tracing::warn!("input sharing disabled: {e:#}"))
+        .ok();
+    Ok((node, agent))
 }
 
 fn main() {
@@ -136,7 +141,7 @@ fn main() {
 
     tauri::Builder::default()
         .setup(|app| {
-            let node = tauri::async_runtime::block_on(start_node())?;
+            let (node, agent) = tauri::async_runtime::block_on(start_node())?;
 
             // Tell the UI to re-fetch whenever something it shows changes.
             let handle = app.handle().clone();
@@ -153,7 +158,7 @@ fn main() {
                 }
             });
 
-            app.manage(App { node });
+            app.manage(App { node, _agent: agent });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

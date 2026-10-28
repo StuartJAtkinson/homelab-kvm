@@ -1,9 +1,13 @@
-//! Platform glue: what this machine looks like (displays, laptop or not) and,
-//! from phase 2, capturing and injecting keyboard/mouse input.
+//! Platform glue: what this machine looks like (displays with stable ids,
+//! laptop or not), and capturing/injecting keyboard and mouse input.
 
+use kvm_core::engine::LocalEvent;
 use kvm_core::protocol::InputEvent;
-use kvm_core::{DisplayInfo, NodeId, NodeInfo, Os};
+use kvm_core::{DisplayInfo, NodeId, NodeInfo, Os, Point};
+use tokio::sync::mpsc::UnboundedSender;
 
+pub mod edid;
+pub mod keymap;
 #[cfg(target_os = "linux")]
 mod linux;
 mod xrandr;
@@ -32,17 +36,41 @@ pub fn has_battery() -> bool {
     platform::has_battery()
 }
 
-/// Receives physical input on the active node. Phase 2.
+/// Reports physical input as [`LocalEvent`]s. Dropping it stops capture.
 pub trait InputCapture: Send {
-    /// Start delivering events. While `grab` is true, events are swallowed
-    /// locally (the cursor is on another machine).
-    fn start(&mut self, sink: Box<dyn FnMut(InputEvent) + Send>) -> anyhow::Result<()>;
-    fn set_grab(&mut self, grab: bool);
-    fn cursor_position(&self) -> anyhow::Result<kvm_core::Point>;
+    /// While grabbed, physical input is swallowed locally (the cursor is on
+    /// another machine) and motion is reported as deltas.
+    fn set_grab(&self, grab: bool);
 }
 
-/// Replays forwarded input on a target node. Phase 2.
+/// Replays forwarded input on this machine.
 pub trait InputInjector: Send {
-    fn warp(&mut self, to: kvm_core::Point) -> anyhow::Result<()>;
+    /// Move the cursor to `to`, in local desktop coordinates.
+    fn warp(&mut self, to: Point) -> anyhow::Result<()>;
     fn inject(&mut self, event: &InputEvent) -> anyhow::Result<()>;
+}
+
+pub fn start_capture(sink: UnboundedSender<LocalEvent>) -> anyhow::Result<Box<dyn InputCapture>> {
+    #[cfg(windows)]
+    return Ok(Box::new(windows::WinCapture::start(sink)?));
+    #[cfg(not(windows))]
+    {
+        let _ = sink;
+        anyhow::bail!("input capture isn't implemented on this platform yet")
+    }
+}
+
+pub fn injector() -> anyhow::Result<Box<dyn InputInjector>> {
+    #[cfg(windows)]
+    return Ok(Box::new(windows::WinInjector::new()));
+    #[cfg(not(windows))]
+    anyhow::bail!("input injection isn't implemented on this platform yet")
+}
+
+/// Current cursor position, for diagnostics.
+pub fn cursor_position() -> Option<Point> {
+    #[cfg(windows)]
+    return windows::cursor_position();
+    #[cfg(not(windows))]
+    None
 }

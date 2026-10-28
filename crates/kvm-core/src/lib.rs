@@ -5,6 +5,7 @@ pub mod geometry;
 pub mod ids;
 pub mod layout;
 pub mod node;
+pub mod engine;
 pub mod protocol;
 
 pub use geometry::{Point, Rect};

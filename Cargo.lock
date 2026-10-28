@@ -1363,6 +1363,7 @@ name = "homelab-kvm"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "kvm-agent",
  "kvm-core",
  "kvm-input",
  "kvm-net",
@@ -1849,6 +1850,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "kvm-agent"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "kvm-core",
+ "kvm-input",
+ "kvm-net",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "kvm-core"
 version = "0.1.0"
 dependencies = [
@@ -1865,6 +1879,7 @@ dependencies = [
  "anyhow",
  "hostname",
  "kvm-core",
+ "tokio",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -1891,6 +1906,7 @@ name = "kvmd"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "kvm-agent",
  "kvm-core",
  "kvm-input",
  "kvm-net",

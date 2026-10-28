@@ -126,7 +126,7 @@ function nodeElement(p) {
     s.style.top = `${(d.rect.y - b.y) * SCALE}px`;
     s.style.width = `${d.rect.w * SCALE}px`;
     s.style.height = `${d.rect.h * SCALE}px`;
-    s.title = d.name;
+    s.title = d.id ? `${d.name}\n${d.id}` : d.name;
     n.append(s);
   }
 
