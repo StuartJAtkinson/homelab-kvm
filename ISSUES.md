@@ -1,0 +1,14 @@
+# Issues — homelab-kvm
+
+## Open
+- [ ] **Room titles render smaller than the stylesheet asks** — `.room-name`'s `font: 600 15px/1.3 inherit` is invalid (a global keyword can't appear in a shorthand), so the declaration is dropped and titles fall back to the UA input style at 13.33px/400 instead of 600/15px — `app/ui/style.css:140`, visible in `.atelier/views/editor-light.png` *(found 2026-11-04)*
+- [ ] **`data-theme="dark"` does nothing** — the stylesheet honours `data-theme="light"` through the `:not()` guard but defines no `[data-theme="dark"]` block, so the attribute can only force light and the dark palette is reachable solely through `prefers-color-scheme`; nothing in the app ever sets the attribute — `app/ui/style.css:19-34` *(found 2026-11-04)*
+- [ ] **Raw UUIDs leak into user-facing error toasts** — `LayoutError` renders `NodeId`/`RoomId` as UUIDs and the editor shows `e.to_string()` verbatim, so a rejected drop reads "node 7f3c… would overlap node 9a1e…" — `crates/kvm-core/src/layout.rs:75-87`, `app/ui/app.js:318-325` *(found 2026-11-04)*
+- [ ] **Delete-room control promises an outcome the command refuses** — the ✕ tooltip says "Delete room (machines go back to Unassigned)" but `remove_room` fails while the room holds a locked machine, and the failure surfaces only as a toast — `app/ui/app.js:209-211`, `crates/kvm-core/src/layout.rs:216-228` *(found 2026-11-04)*
+- [ ] **Room names can be duplicated, and `place` then targets the wrong room** — "+ Room" names rooms `Room ${rooms.length + 1}` so a deleted room's name is reused, `rename_room` accepts any name, and kvmd's `place N ROOM` resolves the name case-insensitively to the first match — `app/ui/app.js:329-332`, `crates/kvmd/src/main.rs:220-225` *(found 2026-11-04)*
+- [ ] **`kvmd peers` prints node UUIDs no other command accepts** — every other command takes a number listed by `pairs` or `layout`, so the ids it prints cannot be used anywhere — `crates/kvmd/src/main.rs:188-192` *(found 2026-11-04)*
+- [ ] **`kvmd layout` gives unassigned machines a fake position** — a machine with no room prints `room=- at 0,0`, which reads as a real placement — `crates/kvmd/src/main.rs:198-211` *(found 2026-11-04)*
+- [ ] **Offline screens dim their own 10px resolution label** — `.node.offline .screen { opacity: .45 }` fades the text along with the fill: sampled ~2:1 in light (#ffffff on #9db9f6) and ~2.1:1 in dark (#808286 on #314e86) against a 4.5:1 requirement — `app/ui/style.css:190`, visible in `.atelier/views/editor-light.png` and `.atelier/views/editor-os-dark.png` *(found 2026-11-04)*
+- [ ] **Icon-only controls are below the minimum target size** — the lock/forget buttons render 20×17px and the room delete 25×20px, against WCAG 2.2's 24×24px minimum — `app/ui/style.css:75`, `app/ui/style.css:205-213` *(found 2026-11-04)*
+
+## Resolved

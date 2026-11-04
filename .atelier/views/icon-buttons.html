@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Destructive &#10005; control — two treatments</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --border: #dde1e7; --text: #1c2330; --muted: #687385;
+    --accent: #2563eb; --accent-soft: #dbe7fe; --screen: #1e293b; --screen-primary: #2563eb;
+    --mine: #0f766e; --online: #16a34a; --offline: #9aa3b2; --danger: #dc2626; --grid: #eef0f3;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --panel: #171b23; --border: #2a303c; --text: #e6e9ef; --muted: #8b94a5;
+      --accent: #4f8cff; --accent-soft: #1d2a45; --screen: #3a4559; --screen-primary: #4f8cff;
+      --mine: #2dd4bf; --grid: #1b2029; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+         font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  p.lead { color: var(--muted); font-size: 12px; margin: 0 0 20px; max-width: 70ch; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+  .opt { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .opt h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+  .opt p.note { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .demo { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .room-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .room-name { font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--text); }
+  .room-count { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .canvas { position: relative; min-height: 74px; background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 24px 24px; }
+  .label { position: absolute; left: 12px; top: 10px; display: flex; align-items: center; gap: 4px;
+           white-space: nowrap; font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--online); flex: none; }
+  .mine { color: var(--mine); font-weight: 600; }
+  button { font: inherit; color: var(--text); cursor: pointer; }
+  /* (a) current room-delete control: button.icon */
+  .icon { border: 1px solid var(--border); background: var(--panel); border-radius: 6px;
+          padding: 2px 6px; font-size: 14px; line-height: 1; }
+  /* (b) current in-canvas control: .lock */
+  .lock { border: none; background: transparent; padding: 0 2px; font-size: 12px; opacity: .8; line-height: 1; }
+  code { font: 12px ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--muted); }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px;
+            border: 1px solid var(--border); background: var(--panel); }
+</style>
+</head>
+<body>
+  <h1>Destructive &#10005; — one glyph, two treatments</h1>
+  <p class="lead">The room header deletes with <code>button.icon</code> (a bordered box); the machine label forgets
+     with <code>.lock</code> (a bare glyph). Same &#10005;, two looks. Which one should every destructive &#10005; use?</p>
+
+  <div class="cols">
+    <div class="opt">
+      <h2>(a) Keep the boxed control everywhere</h2>
+      <p class="note"><code>button.icon</code> — border <span class="swatch"></span> #dde1e7, radius 6px, padding 2px 6px, 14px glyph.</p>
+      <div class="demo">
+        <div class="room-head">
+          <span class="room-name">Office</span>
+          <span class="room-count">1 machine</span>
+          <button class="icon">&#10005;</button>
+        </div>
+        <div class="canvas">
+          <div class="label"><span class="dot"></span><span class="mine">laptop (this machine)</span>
+            <button class="icon">&#10005;</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt">
+      <h2>(b) Bare glyph everywhere</h2>
+      <p class="note"><code>.lock</code> — no border, transparent, padding 0 2px, 12px glyph, opacity .8.</p>
+      <div class="demo">
+        <div class="room-head">
+          <span class="room-name">Office</span>
+          <span class="room-count">1 machine</span>
+          <button class="lock">&#10005;</button>
+        </div>
+        <div class="canvas">
+          <div class="label"><span class="dot"></span><span class="mine">laptop (this machine)</span>
+            <button class="lock">&#10005;</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt">
+      <h2>(c) Boxed, but tinted as destructive</h2>
+      <p class="note"><code>button.icon</code> with a danger accent — border #dc2626, text #dc2626.</p>
+      <div class="demo">
+        <div class="room-head">
+          <span class="room-name">Office</span>
+          <span class="room-count">1 machine</span>
+          <button class="icon" style="border-color:#dc2626;color:#dc2626;">&#10005;</button>
+        </div>
+        <div class="canvas">
+          <div class="label"><span class="dot"></span><span class="mine">laptop (this machine)</span>
+            <button class="icon" style="border-color:#dc2626;color:#dc2626;">&#10005;</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

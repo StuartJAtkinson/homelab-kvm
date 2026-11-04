@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock state wording — three vocabularies</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --border: #dde1e7; --text: #1c2330; --muted: #687385;
+    --accent: #2563eb; --accent-soft: #dbe7fe; --screen: #1e293b; --screen-primary: #2563eb;
+    --mine: #0f766e; --online: #16a34a; --offline: #9aa3b2; --danger: #dc2626; --grid: #eef0f3;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --panel: #171b23; --border: #2a303c; --text: #e6e9ef; --muted: #8b94a5;
+      --accent: #4f8cff; --accent-soft: #1d2a45; --screen: #3a4559; --screen-primary: #4f8cff;
+      --mine: #2dd4bf; --grid: #1b2029; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+         font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  p.lead { color: var(--muted); font-size: 12px; margin: 0 0 20px; max-width: 76ch; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 20px; }
+  .opt { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .opt h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+  .surface { font: 11.5px ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--muted);
+             background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+             padding: 8px 10px; margin: 0 0 12px; white-space: pre-wrap; }
+  .label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 12px;
+           border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px;
+           background: var(--panel); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--online); flex: none; }
+  .mine { color: var(--mine); font-weight: 600; }
+  .muted { color: var(--muted); font-size: 12px; margin: 0; }
+  .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+         border-radius: 999px; padding: 1px 8px; margin-right: 6px; }
+</style>
+</head>
+<body>
+  <h1>What do we call a machine that can't be dragged?</h1>
+  <p class="lead">The same state is called four different things today: <b>locked in place</b> / <b>movable</b>
+     (editor tooltips), <b>locked</b> / <b>unlocked</b> (kvmd <code>layout</code> output),
+     <b>fix or free</b> (kvmd help) and <b>mobile</b> (README). One word pair, everywhere?</p>
+
+  <div class="cols">
+    <div class="opt">
+      <h2>(a) Locked / Unlocked</h2>
+      <p class="muted" style="margin-bottom:10px"><span class="tag">kvmd layout</span><span class="tag">model field <code>locked</code></span></p>
+      <div class="label"><span class="dot"></span><span class="mine">laptop (this machine)</span>&#128274;</div>
+      <div class="surface">tooltip  Locked in place — click to unlock
+tooltip  Movable — click to lock
+
+0: desk-pc room=Office at 0,0 locked
+1: laptop room=- at 0,0 unlocked</div>
+    </div>
+
+    <div class="opt">
+      <h2>(b) Locked in place / Movable</h2>
+      <p class="muted" style="margin-bottom:10px"><span class="tag">editor tooltips</span><span class="tag">editor toast</span></p>
+      <div class="label"><span class="dot"></span><span class="mine">laptop (this machine)</span>&#128274;</div>
+      <div class="surface">tooltip  Locked in place — click to unlock
+tooltip  Movable — click to lock
+
+0: desk-pc room=Office at 0,0 locked in place
+1: laptop room=- at 0,0 movable</div>
+    </div>
+
+    <div class="opt">
+      <h2>(c) Fixed / Free</h2>
+      <p class="muted" style="margin-bottom:10px"><span class="tag">kvmd help</span><span class="tag">README "fixed monitors"</span></p>
+      <div class="label"><span class="dot"></span><span class="mine">laptop (this machine)</span>&#128274;</div>
+      <div class="surface">tooltip  Fixed in place — click to free
+tooltip  Free — click to fix
+
+0: desk-pc room=Office at 0,0 fixed
+1: laptop room=- at 0,0 free</div>
+    </div>
+  </div>
+</body>
+</html>
