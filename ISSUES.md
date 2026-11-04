@@ -1,6 +1,9 @@
 # Issues — homelab-kvm
 
 ## Open
+- [ ] **Replace the stock Tauri app icon** — decided: design homelab-kvm's own mark. Design a simple mark and export it to `app/src-tauri/icons/32x32.png`, `128x128.png` and `icon.ico`, replacing the stock Tauri placeholder (two generic monitors on a blue rounded square). *(answered 2026-11-04)*
+- [ ] **One treatment for destructive ✕ controls** — decided: (a) boxed everywhere. Give the machine label's forget ✕ the same `button.icon` treatment as the room header's delete ✕ (1px border #dde1e7, radius 6px, padding 2px 6px, 14px glyph), so forgetting a machine and deleting a room look the same and their `title` text carries the difference. *(answered 2026-11-04)*
+- [ ] **One word pair for the position lock** — decided: (a) locked / unlocked everywhere. Rewrite the editor tooltips and toast ("Locked in place — click to unlock" / "Movable — click to lock" / "Locked in place. Click the lock to move it."), the `kvmd` help text ("fix or free machine N's position") and the README ("laptops stay mobile") to say locked / unlocked; the model field `Placement.locked` and the `kvmd layout` output already do. *(answered 2026-11-04)*
 - [ ] **Room titles render smaller than the stylesheet asks** — `.room-name`'s `font: 600 15px/1.3 inherit` is invalid (a global keyword can't appear in a shorthand), so the declaration is dropped and titles fall back to the UA input style at 13.33px/400 instead of 600/15px — `app/ui/style.css:140`, visible in `.atelier/views/editor-light.png` *(found 2026-11-04)*
 - [ ] **`data-theme="dark"` does nothing** — the stylesheet honours `data-theme="light"` through the `:not()` guard but defines no `[data-theme="dark"]` block, so the attribute can only force light and the dark palette is reachable solely through `prefers-color-scheme`; nothing in the app ever sets the attribute — `app/ui/style.css:19-34` *(found 2026-11-04)*
 - [ ] **Raw UUIDs leak into user-facing error toasts** — `LayoutError` renders `NodeId`/`RoomId` as UUIDs and the editor shows `e.to_string()` verbatim, so a rejected drop reads "node 7f3c… would overlap node 9a1e…" — `crates/kvm-core/src/layout.rs:75-87`, `app/ui/app.js:318-325` *(found 2026-11-04)*
@@ -12,9 +15,3 @@
 - [ ] **Icon-only controls are below the minimum target size** — the lock/forget buttons render 20×17px and the room delete 25×20px, against WCAG 2.2's 24×24px minimum — `app/ui/style.css:75`, `app/ui/style.css:205-213` *(found 2026-11-04)*
 
 ## Resolved
-
-## Needs input (Auto Continue)
-*Left by Auto Continue 2026-11-04 — decide these, then clear CONSIDERATIONS.md.*
-- The app icon is still the stock Tauri placeholder — two generic monitors on a blue rounded square, used at 32×32, 128×128 and in the `.ico`. **Keep the placeholder, or design homelab-kvm's own mark?** Evidence: `app/src-tauri/icons/128x128.png` (also `app/src-tauri/icons/32x32.png`, `app/src-tauri/icons/icon.ico`).
-- The same ✕ glyph is a bordered box in the room header (`button.icon`, 25×20px, border #dde1e7) and a bare glyph on machine labels (`.lock`, 20×17px, no border) — and the machine label's ✕ *forgets* a machine while the room header's ✕ *deletes a room*. **Which treatment should every destructive ✕ use, and should forgetting a machine wear the same look as deleting a room?** Options (a) boxed, (b) bare glyph, (c) boxed and tinted #dc2626, side by side: `.atelier/views/icon-buttons.html`.
-- One state, four words: "locked in place"/"movable" (editor tooltips and toast), "locked"/"unlocked" (`kvmd layout` output), "fix or free" (`kvmd` help) and "mobile" (README). **Which pair do we use everywhere?** Options (a) locked/unlocked, (b) locked in place/movable, (c) fixed/free, each shown in both surfaces: `.atelier/views/lock-terminology.html`.
