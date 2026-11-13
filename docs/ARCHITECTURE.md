@@ -22,7 +22,7 @@ Non-goals for v1: clipboard sync, file drag, macOS, crossing the internet.
 |-------------------|----------------------------------------------------------------------|
 | `crates/kvm-core` | Pure logic: IDs, geometry, layout model, cursor crossing, protocol. No I/O. |
 | `crates/kvm-net`  | mDNS discovery, framed TCP transport, peer mesh, layout sync (`KvmNode`). |
-| `crates/kvm-input`| Platform glue: displays with stable EDID ids, laptop detection, input capture (hooks) and injection (`SendInput`). |
+| `crates/kvm-input`| Platform glue: display discovery, laptop detection, Windows input hooks/`SendInput`, and Linux evdev/uinput input. |
 | `crates/kvm-agent`| Runs the input `Engine` (in kvm-core) against a `KvmNode` and the platform devices. |
 | `crates/kvmd`     | Headless daemon (useful for servers / debugging).                    |
 | `app/`            | Tauri desktop app: tray + layout editor UI (`app/ui`, plain HTML/JS). |
@@ -203,5 +203,5 @@ What this enables (not built yet):
 2. Pairing + Noise transport. *(done)*
 3. Windows capture/inject, crossing between two Windows machines. *(done;
    needs testing across two real machines)*
-4. Linux backends.
+4. Linux evdev/uinput input for X11/XWayland. *(implemented; needs testing on a real Linux desktop)*
 5. Polish: tray icon, autostart, hotkeys, per-node DPI scale, clipboard text.

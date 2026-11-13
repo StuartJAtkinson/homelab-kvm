@@ -107,6 +107,7 @@ impl InputCapture for WinCapture {
             let park = unsafe { Point::new(GetSystemMetrics(SM_CXSCREEN) / 2, GetSystemMetrics(SM_CYSCREEN) / 2) };
             PARK_X.store(park.x, Relaxed);
             PARK_Y.store(park.y, Relaxed);
+            store_last(park);
             GRAB.store(true, Relaxed);
             unsafe { SetCursorPos(park.x, park.y) };
         } else {
@@ -170,7 +171,9 @@ unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) 
             let pt = Point::new(info.pt.x, info.pt.y);
             if grabbed {
                 let park = Point::new(PARK_X.load(Relaxed), PARK_Y.load(Relaxed));
-                Some(LocalEvent::Motion { pos: park, delta: pt - park })
+                let last = Point::new(LAST_X.load(Relaxed), LAST_Y.load(Relaxed));
+                store_last(pt);
+                Some(LocalEvent::Motion { pos: park, delta: pt - last })
             } else {
                 let last = Point::new(LAST_X.load(Relaxed), LAST_Y.load(Relaxed));
                 store_last(pt);

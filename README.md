@@ -14,14 +14,15 @@ code, the peer mesh, layout sync and persistence, the layout model (rooms,
 lock, snapping, overlap checks, cursor-crossing maths) and the layout editor.
 Mouse and keyboard sharing works on **Windows** (tested with mock devices and
 on one real machine; crossing between two physical machines is next to try).
-Linux input isn't implemented yet.
+Linux has an evdev/uinput input backend for X11 and XWayland; it still needs
+testing on a real Linux desktop.
 
 ## Layout
 
 ```
 crates/kvm-core    layout model, geometry, protocol (pure, unit-tested)
 crates/kvm-net     mDNS discovery, TCP mesh, layout sync, persistence
-crates/kvm-input   displays (stable EDID ids), laptop detection, Windows input hooks
+crates/kvm-input   displays (stable EDID ids), laptop detection, Windows hooks, Linux evdev/uinput
 crates/kvm-agent   runs the input engine against the mesh and the devices
 crates/kvmd        headless daemon
 app/src-tauri      desktop app (Tauri 2)
@@ -55,6 +56,12 @@ platform dependencies:
   development with C++") and WebView2 (preinstalled on Windows 11).
 - **Linux:** `webkit2gtk-4.1`, `libgtk-3-dev`, `librsvg2-dev` (see the
   [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)).
+
+Linux input sharing needs an X11 display (or XWayland), readable and grabbable
+`/dev/input/event*` devices, and write access to `/dev/uinput`. Configure the
+system's `input` group/udev permissions for the user running the app; running
+the desktop app as root is not recommended. Without these permissions the
+agent reports an error when input sharing starts.
 
 ```sh
 cargo run -p homelab-kvm

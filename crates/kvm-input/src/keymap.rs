@@ -73,6 +73,33 @@ pub fn scancode_from_usage(usage: u16) -> Option<(u16, bool)> {
     TABLE.iter().find(|&&(u, _, _)| u == usage).map(|&(_, sc, ext)| (sc, ext))
 }
 
+/// Linux evdev keycode for a HID usage. Standard non-extended set-1 codes
+/// share their numeric values with evdev; extended keys use KEY_* codes.
+pub fn linux_keycode_from_usage(usage: u16) -> Option<u16> {
+    const EXTENDED: &[(u16, u16)] = &[
+        (0xE3, 125), (0xE4, 97), (0xE5, 54), (0xE6, 100), (0xE7, 126),
+        (0x49, 110), (0x4A, 102), (0x4B, 104), (0x4C, 111), (0x4D, 107),
+        (0x4E, 109), (0x4F, 106), (0x50, 105), (0x51, 108), (0x52, 103),
+        (0x53, 69), (0x54, 98), (0x58, 96), (0x46, 99), (0x48, 119),
+        (0x7F, 113), (0x80, 115), (0x81, 114),
+    ];
+    EXTENDED.iter().find(|(u, _)| *u == usage).map(|(_, code)| *code)
+        .or_else(|| TABLE.iter().find(|&&(u, _, ext)| u == usage && !ext).map(|&(_, sc, _)| sc))
+}
+
+/// HID usage corresponding to a Linux evdev keyboard keycode.
+pub fn usage_from_linux_keycode(code: u16) -> Option<u16> {
+    const EXTENDED: &[(u16, u16)] = &[
+        (125, 0xE3), (97, 0xE4), (54, 0xE5), (100, 0xE6), (126, 0xE7),
+        (110, 0x49), (102, 0x4A), (104, 0x4B), (111, 0x4C), (107, 0x4D),
+        (109, 0x4E), (106, 0x4F), (105, 0x50), (108, 0x51), (103, 0x52),
+        (69, 0x53), (98, 0x54), (96, 0x58), (99, 0x46), (119, 0x48),
+        (113, 0x7F), (115, 0x80), (114, 0x81),
+    ];
+    EXTENDED.iter().find(|(c, _)| *c == code).map(|(_, usage)| *usage)
+        .or_else(|| TABLE.iter().find(|&&(_, sc, ext)| sc == code && !ext).map(|&(usage, _, _)| usage))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

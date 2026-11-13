@@ -53,17 +53,18 @@ pub trait InputInjector: Send {
 pub fn start_capture(sink: UnboundedSender<LocalEvent>) -> anyhow::Result<Box<dyn InputCapture>> {
     #[cfg(windows)]
     return Ok(Box::new(windows::WinCapture::start(sink)?));
-    #[cfg(not(windows))]
-    {
-        let _ = sink;
-        anyhow::bail!("input capture isn't implemented on this platform yet")
-    }
+    #[cfg(target_os = "linux")]
+    return Ok(Box::new(linux::LinuxCapture::start(sink)?));
+    #[cfg(not(any(windows, target_os = "linux")))]
+    anyhow::bail!("input capture isn't implemented on this platform yet")
 }
 
 pub fn injector() -> anyhow::Result<Box<dyn InputInjector>> {
     #[cfg(windows)]
     return Ok(Box::new(windows::WinInjector::new()));
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    return Ok(Box::new(linux::LinuxInjector::new()?));
+    #[cfg(not(any(windows, target_os = "linux")))]
     anyhow::bail!("input injection isn't implemented on this platform yet")
 }
 
@@ -71,6 +72,8 @@ pub fn injector() -> anyhow::Result<Box<dyn InputInjector>> {
 pub fn cursor_position() -> Option<Point> {
     #[cfg(windows)]
     return windows::cursor_position();
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    return linux::cursor_position();
+    #[cfg(not(any(windows, target_os = "linux")))]
     None
 }
